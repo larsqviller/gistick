@@ -12,8 +12,10 @@ r.in.gdal input=/home/lars/geodata/10m_DEM.tif output=elevation
 g.region -p vect=StudyArea align=elevation
 
 r.watershed elev=elevation accum=drainage
-r.water.outlet drainage=drainage basin=basin easting=616701.55 northing=6841746.92
+r.water.outlet drainage=drainage basin=basin easting=29564094 northing=6778848.71
 
 r.fill.dir input=elevation elev=depressionless dir=direction type=grass
 r.topidx input=topograhical output=topidx
 r.topmodel
+
+
