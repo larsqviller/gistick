@@ -1,4 +1,7 @@
-This is a GRASS script that makes the 
+#This is a GRASS script that makes the 
+#instal grass7
+#sudo apt-get install build-essential swig python-psycopg2 python-numpy python-sip python-sip-dev python-wxgtk2.8 curl
+
 
 v.in.ogr -o dsn=/home/lars/geodata/14/fy14fy_l.shp output=SF2
 v.in.ogr -o dsn=/home/lars/geodata/15/fy15fy_l.shp output=MR2
@@ -12,13 +15,13 @@ g.region -p vect=SF2 align=elevation
 r.slope.aspect elev=elevation slope=slope aspect=aspect
 ## Removing zeros from the slope map
 r.mapcalc Slope_NoZeros = slope + 0.0001
-r.sun 
+#r.sun 
 
 v.in.ogr --overwrite dsn=/home/lars/geodata/coast/coastline_drawn_by_hand.shp output=kyst
 # Rasterizing the outer coasline:
 v.to.rast in=kyst out=coast_rast column=cat
 #I then used a function that calculates a raster map with the distance to to the nearest non-empty grid in the input map. In the coastline raster, the only pixels with any value are the ones that
-constitutes the line:
+## constitutes the line:
 r.grow.distance input=coast_rast distance=dist_from_coast
 
 
@@ -71,7 +74,7 @@ r.mapcalc 'WetnessIndex10000MR = log(UpslopeContributingArea10000MR/tan(Slope_No
 
 ## The two last generated maps are now the wetness index maps, based watershed maps with two different resolutions
 
-
+## This part must be performed in grass70
 ## Will also try to make a fully generated wetness index map using r.topidx
 g.region -p vect=SF2 align=elevation
 #r.topidx input=elevation output=topidxSF
@@ -81,4 +84,12 @@ r.watershed --o elev=elevation threshold=10000 tci=tci10000SF
 g.region -p vect=MR2 align=elevation
 r.watershed --o elev=elevation threshold=1000 tci=tciMR 
 r.watershed --o elev=elevation threshold=10000 tci=tci10000MR 
+
+## Now I must combine the layers I have made using SF and MR separately.
+## The overlaping areas will be calculated as the mean - this will not be any problem, as the Sogn&Fjordane study area stops at Nordfjord, and the Møre&Romsdal study area stops at Tingvoll. None of the survey plots will be affected by the overlapping zone.
+
+g.region -p vect=StudyArea align=elevation
+r.series
+
+g.region -p vect=StudyArea align=elevation
 
