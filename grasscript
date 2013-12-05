@@ -10,11 +10,11 @@ v.in.ogr -o dsn=/home/lars/geodata/15/fy15fy_l.shp output=MR2
 v.patch input=MR2,SF2 out=StudyArea
 r.in.gdal input=/home/lars/geodata/10m_DEM.tif output=elevation
 g.region -p vect=StudyArea align=elevation
-g.region -p vect=SF2 align=elevation
 
-r.slope.aspect elev=elevation slope=slope aspect=aspect
+
+r.slope.aspect --o elev=elevation slope=slope aspect=aspect
 ## Removing zeros from the slope map
-r.mapcalc Slope_NoZeros = slope + 0.0001
+r.mapcalc Slope_NoZeros=slope+0.0001
 #r.sun 
 
 v.in.ogr --overwrite dsn=/home/lars/geodata/coast/coastline_drawn_by_hand.shp output=kyst
@@ -30,9 +30,9 @@ r.grow.distance input=coast_rast distance=dist_from_coast
 
 
 #Making a map that consists of only fjords. This was done by giving all areas with elevation = 0, the value 1, and all other values set to 0.
-r.mapcalc fjords = elevation==0
+r.mapcalc fjords=elevation==0
 #I then divided the previous map by 0, to get nonsense data = NoData values on land
-r.mapcalc fjords = fjords/fjords
+r.mapcalc fjords=fjords/fjords
 #No we have a map "fjords", that only have values 1 for fjords, and no data on dry land
 #Distance from fjords is done with the following command:
 r.grow.distance input=fjords distance=dist_from_fjords
@@ -43,18 +43,18 @@ r.grow.distance input=fjords distance=dist_from_fjords
 # The next map is a bit more complex
 # I had to reduce the map region to work with, selecting the counties
 g.region -p vect=SF2 align=elevation
-## I then made a basin map using threshold 1000 - or minimum 316²m² water basin, and then the next 1sqared km, threshold = 10,000.
+## I then made a basin map using threshold 1000 - or minimum 316²m² water basin, and then the next 1sqared km, threshold=10,000.
 
 r.watershed --o elev=elevation threshold=1000 accum=accumulationSF basin=basinSF 
 r.watershed --o elev=elevation threshold=10000 accum=accumulation10000SF basin=basin10000SF 
 
 ## Since flow accumulation represents the number of upslope cells relative to a given cell, to obtain upslope contributing area, I will multiply flow accumulation by the area of cells in the image. 
 
-r.mapcalc UpslopeContributingAreaSF = accumulationSF*100
-r.mapcalc UpslopeContributingArea10000SF = accumulation10000SF*100
+r.mapcalc UpslopeContributingAreaSF=accumulationSF*100
+r.mapcalc UpslopeContributingArea10000SF=accumulation10000SF*100
 
-r.mapcalc 'WetnessIndexSF = log(UpslopeContributingAreaSF/tan(Slope_NoZeros), 2.718282)'
-r.mapcalc 'WetnessIndex10000SF = log(UpslopeContributingArea10000SF/tan(Slope_NoZeros), 2.718282)'
+r.mapcalc 'WetnessIndexSF=log(UpslopeContributingAreaSF/tan(Slope_NoZeros), 2.718282)'
+r.mapcalc 'WetnessIndex10000SF=log(UpslopeContributingArea10000SF/tan(Slope_NoZeros), 2.718282)'
 
 ## The two last generated maps are now the wetness index maps, based watershed maps with two different resolutions
 
@@ -67,10 +67,11 @@ r.watershed --o elev=elevation threshold=10000 accum=accumulation10000MR basin=b
 
 ## Since flow accumulation represents the number of upslope cells relative to a given cell, to obtain upslope contributing area, I will multiply flow accumulation by the area of cells in the image. 
 
-r.mapcalc UpslopeContributingAreaMR = accumulationMR*100
-r.mapcalc UpslopeContributingArea10000MR = accumulation10000MR*100
-r.mapcalc 'WetnessIndexMR = log(UpslopeContributingAreaMR/tan(Slope_NoZeros), 2.718282)'
-r.mapcalc 'WetnessIndex10000MR = log(UpslopeContributingArea10000MR/tan(Slope_NoZeros), 2.718282)'
+r.mapcalc UpslopeContributingAreaMR=accumulationMR*100
+r.mapcalc UpslopeContributingArea10000MR=accumulation10000MR*100
+r.mapcalc 'WetnessIndexMR=log(UpslopeContributingAreaMR/tan(Slope_NoZeros), 2.718282)'
+r.mapcalc 'WetnessIndex10000MR=log(UpslopeContributingArea10000MR/tan(Slope_NoZeros), 2.718282)'
+
 
 ## The two last generated maps are now the wetness index maps, based watershed maps with two different resolutions
 
@@ -85,11 +86,12 @@ g.region -p vect=MR2 align=elevation
 r.watershed --o elev=elevation threshold=1000 tci=tciMR 
 r.watershed --o elev=elevation threshold=10000 tci=tci10000MR 
 
+## Combine the MR and SF - maps
+r.series method=average --o input=tciSF,tciMR output=tci
+r.series method=average --o input=tci10000SF,tci10000MR output=tci10000
+r.series method=average --o input=WetnessIndexSF,WetnessIndexMR output=WetnessIndex
+r.series method=average --o input=WetnessIndex10000SF,WetnessIndex10000MR output=WetnessIndex10000
+
 ## Now I must combine the layers I have made using SF and MR separately.
 ## The overlaping areas will be calculated as the mean - this will not be any problem, as the Sogn&Fjordane study area stops at Nordfjord, and the Møre&Romsdal study area stops at Tingvoll. None of the survey plots will be affected by the overlapping zone.
-
-g.region -p vect=StudyArea align=elevation
-r.series
-
-g.region -p vect=StudyArea align=elevation
 
